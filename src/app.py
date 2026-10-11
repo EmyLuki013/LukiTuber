@@ -3,12 +3,14 @@ from pygame.locals import *
 
 from logger import log
 from avatars_manager import AvatarsManager
+from settings import global_settings
 
 class App: 
     def __init__(self, width=800, height=600):
         self.width = width
         self.height = height
         self.avatars_manager = AvatarsManager()
+        self.settings = global_settings
         
         pygame.init()
         
@@ -16,6 +18,7 @@ class App:
         pygame.display.set_caption("Lukituber")
         log.info("LukiTuber Inicializado")
 
+        self.settings.load_settings()
         self.avatars_manager.load_avatars()
     
     def handle_events(self):
