@@ -20,6 +20,13 @@ class App:
 
         self.settings.load_settings()
         self.avatars_manager.load_avatars()
+
+        selected_avatar = self.avatars_manager.get_avatar(self.settings.selected_avatar)
+        if selected_avatar:
+            selected_avatar.layers_manager.load_layers()
+            log.info(f"Layers do avatar '{selected_avatar.name}' carregados")
+        else:
+            log.error(f"Não foi possivel carregar os layers do avatar '{selected_avatar.name}'")
     
     def handle_events(self):
         for event in pygame.event.get():

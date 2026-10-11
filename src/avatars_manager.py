@@ -14,22 +14,18 @@ class AvatarsManager:
         self.avatars = []
         self.settings = global_settings
 
-    # ---------- Seleção ----------
     def select_avatar(self, avatar_name):
         self.settings.selected_avatar = avatar_name
         log.info(f"Avatar '{avatar_name}' selecionado")
         self.settings.save_settings()
 
-    # ---------- Busca ----------
     def get_avatar(self, name: str):
         for a in self.avatars:
             if a.name == name:
                 return a
         return None
 
-    # ---------- Criar ----------
     def create_avatar(self, name: str, dir: str, create_dirs=True):
-        # evita duplicados por nome
         if self.get_avatar(name):
             log.warning(f"Avatar '{name}' já existe. Ignorando criação.")
             return self.get_avatar(name)
@@ -44,7 +40,6 @@ class AvatarsManager:
 
         return new_avatar
 
-    # ---------- Renomear ----------
     def rename_avatar(self, avatar, new_name: str):
         if not new_name or new_name == avatar.name:
             return
@@ -58,7 +53,6 @@ class AvatarsManager:
         if self.settings.selected_avatar == old_name:
             self.select_avatar(new_name)
 
-    # ---------- Apagar ----------
     def delete_avatar(self, avatar, delete_files=False):
         if avatar not in self.avatars:
             return
@@ -74,7 +68,6 @@ class AvatarsManager:
             self.settings.selected_avatar = None
             self.settings.save_settings()
 
-    # ---------- Persistência ----------
     def save_avatars(self):
         os.makedirs(os.path.dirname(AVATARS_FILE), exist_ok=True)
 
@@ -88,23 +81,20 @@ class AvatarsManager:
     def load_avatars(self):
         os.makedirs(os.path.dirname(AVATARS_FILE), exist_ok=True)
 
-        # ---- Caso 1: arquivo não existe -> cria default ----
         if not os.path.exists(AVATARS_FILE):
             log.warning(f"Arquivo '{AVATARS_FILE}' não encontrado. Criando novo...")
 
-            self.avatars = []  # limpa por segurança
+            self.avatars = []
             default = self.create_avatar("Default", "avatars/default")
             self.select_avatar(default.name)
             self.save_avatars()
 
             log.info("Arquivo inicial criado com avatar 'Default'.")
-            return  # ⚠️ IMPEDE de reler e duplicar
+            return
 
-        # ---- Caso 2: arquivo existe -> lê ----
         with open(AVATARS_FILE, "r", encoding="utf-8") as file:
             content = file.read().strip()
 
-        # arquivo vazio ou corrompido -> recria
         if not content:
             log.warning(f"Arquivo '{AVATARS_FILE}' vazio. Recriando...")
             self.avatars = []
@@ -119,7 +109,6 @@ class AvatarsManager:
             log.error(f"JSON inválido em '{AVATARS_FILE}': {e}")
             raise
 
-        # ⚠️ limpa antes de popular
         self.avatars = []
 
         log.info("Carregando Avatars...")
