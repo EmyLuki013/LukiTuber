@@ -15,7 +15,7 @@ class App:
         pygame.init()
         
         pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Lukituber")
+        pygame.display.set_caption("LukiTuber")
         log.info("LukiTuber Inicializado")
 
         self.settings.load_settings()

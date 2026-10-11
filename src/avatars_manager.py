@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 
 from logger import log
 from avatar import Avatar
@@ -7,62 +8,121 @@ from settings import global_settings
 
 AVATARS_FILE = "avatars/avatars.json"
 
+
 class AvatarsManager:
     def __init__(self):
         self.avatars = []
         self.settings = global_settings
 
+    # ---------- Seleção ----------
     def select_avatar(self, avatar_name):
         self.settings.selected_avatar = avatar_name
         log.info(f"Avatar '{avatar_name}' selecionado")
         self.settings.save_settings()
 
+    # ---------- Busca ----------
+    def get_avatar(self, name: str):
+        for a in self.avatars:
+            if a.name == name:
+                return a
+        return None
+
+    # ---------- Criar ----------
     def create_avatar(self, name: str, dir: str, create_dirs=True):
+        # evita duplicados por nome
+        if self.get_avatar(name):
+            log.warning(f"Avatar '{name}' já existe. Ignorando criação.")
+            return self.get_avatar(name)
+
         new_avatar = Avatar(name, dir)
         self.avatars.append(new_avatar)
-        
+
         if create_dirs:
             log.info("Criando diretórios do Avatar...")
-            
-            body_dir = f"{dir}/body"
-            eyes_dir = f"{dir}/eyes"
-            mouth_dir = f"{dir}/mouth"
-    
-            os.makedirs(dir, exist_ok=True)
-            os.makedirs(body_dir, exist_ok=True)
-            os.makedirs(eyes_dir, exist_ok=True)
-            os.makedirs(mouth_dir, exist_ok=True)
+            for sub in ("body", "eyes", "mouth"):
+                os.makedirs(os.path.join(dir, sub), exist_ok=True)
 
+        return new_avatar
+
+    # ---------- Renomear ----------
+    def rename_avatar(self, avatar, new_name: str):
+        if not new_name or new_name == avatar.name:
+            return
+        if self.get_avatar(new_name):
+            raise ValueError(f"Já existe um avatar chamado '{new_name}'")
+
+        old_name = avatar.name
+        avatar.name = new_name
+        log.info(f"Avatar '{old_name}' renomeado para '{new_name}'")
+
+        if self.settings.selected_avatar == old_name:
+            self.select_avatar(new_name)
+
+    # ---------- Apagar ----------
+    def delete_avatar(self, avatar, delete_files=False):
+        if avatar not in self.avatars:
+            return
+
+        self.avatars.remove(avatar)
+        log.info(f"Avatar '{avatar.name}' removido da lista")
+
+        if delete_files and os.path.isdir(avatar.dir):
+            shutil.rmtree(avatar.dir, ignore_errors=True)
+            log.info(f"Diretório '{avatar.dir}' apagado")
+
+        if self.settings.selected_avatar == avatar.name:
+            self.settings.selected_avatar = None
+            self.settings.save_settings()
+
+    # ---------- Persistência ----------
     def save_avatars(self):
-        avatars_obj = []
-        for avatar in self.avatars:
-            avatar_obj = avatar.get_obj()
-            avatars_obj.append(avatar_obj)
+        os.makedirs(os.path.dirname(AVATARS_FILE), exist_ok=True)
 
-        with open(AVATARS_FILE, 'w', encoding='utf-8') as f:
-            log.info(f"Arquivo '{AVATARS_FILE}' Salvo")
-            json.dump(avatars_obj, f, indent=2)
+        avatars_obj = [a.get_obj() for a in self.avatars]
+
+        with open(AVATARS_FILE, "w", encoding="utf-8") as f:
+            json.dump(avatars_obj, f, indent=2, ensure_ascii=False)
+
+        log.info(f"Arquivo '{AVATARS_FILE}' salvo ({len(avatars_obj)} avatars)")
 
     def load_avatars(self):
         os.makedirs(os.path.dirname(AVATARS_FILE), exist_ok=True)
-        
+
+        # ---- Caso 1: arquivo não existe -> cria default ----
         if not os.path.exists(AVATARS_FILE):
-            log.warning(f"Arquivo '{AVATARS_FILE}' não encontrado. Criando novo arquivo...")
+            log.warning(f"Arquivo '{AVATARS_FILE}' não encontrado. Criando novo...")
 
-            log.info("Criando Default Avatar...")
-            avatar_name = "Default"
-            self.create_avatar(avatar_name, "avatars/default")
-            self.select_avatar(avatar_name)
-
-            log.info(f"Criando arquivo '{AVATARS_FILE}'...")
+            self.avatars = []  # limpa por segurança
+            default = self.create_avatar("Default", "avatars/default")
+            self.select_avatar(default.name)
             self.save_avatars()
 
-        with open(AVATARS_FILE, 'r') as file:
-            log.info(f"Abrindo arquivo '{AVATARS_FILE}'...")
-            content = file.read()
-            avatars_json = json.loads(content)
+            log.info("Arquivo inicial criado com avatar 'Default'.")
+            return  # ⚠️ IMPEDE de reler e duplicar
 
-            log.info("Carregando Avatars...")
-            for avatar in avatars_json:
-                self.create_avatar(avatar["name"], avatar["dir"], False)
-                log.info(f"Avatar '{avatar["name"]}' Carregado.")
+        # ---- Caso 2: arquivo existe -> lê ----
+        with open(AVATARS_FILE, "r", encoding="utf-8") as file:
+            content = file.read().strip()
+
+        # arquivo vazio ou corrompido -> recria
+        if not content:
+            log.warning(f"Arquivo '{AVATARS_FILE}' vazio. Recriando...")
+            self.avatars = []
+            default = self.create_avatar("Default", "avatars/default")
+            self.select_avatar(default.name)
+            self.save_avatars()
+            return
+
+        try:
+            avatars_json = json.loads(content)
+        except json.JSONDecodeError as e:
+            log.error(f"JSON inválido em '{AVATARS_FILE}': {e}")
+            raise
+
+        # ⚠️ limpa antes de popular
+        self.avatars = []
+
+        log.info("Carregando Avatars...")
+        for obj in avatars_json:
+            self.create_avatar(obj["name"], obj["dir"], create_dirs=False)
+            log.info(f"Avatar '{obj['name']}' carregado.")
