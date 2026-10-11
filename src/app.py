@@ -4,6 +4,7 @@ from pygame.locals import *
 from logger import log
 from avatars_manager import AvatarsManager
 from settings import global_settings
+from renderer import Renderer
 
 class App: 
     def __init__(self, width=800, height=600):
@@ -11,6 +12,7 @@ class App:
         self.height = height
         self.avatars_manager = AvatarsManager()
         self.settings = global_settings
+        self.renderer = Renderer()
         
         pygame.init()
         
@@ -25,9 +27,12 @@ class App:
         if selected_avatar:
             selected_avatar.layers_manager.load_layers()
             log.info(f"Layers do avatar '{selected_avatar.name}' carregados")
+            self.renderer.set_avatar(selected_avatar)
         else:
-            log.error(f"Não foi possivel carregar os layers do avatar '{selected_avatar.name}'")
-    
+            log.error("Não foi possivel carregar o avatar selecionado")
+
+        self.screen = pygame.display.get_surface()
+        
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -37,6 +42,7 @@ class App:
         return True
     
     def render_frame(self):
+        self.renderer.render(self.screen)
         pygame.display.flip()
     
     def run(self):
