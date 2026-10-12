@@ -13,7 +13,7 @@
     "path": "avatars/Satella/body/back_hood.png",
     "x_offset": 0,
     "y_offset": 0,
-    "active": true,
+    "active": false,
     "z_index": 1,
     "scale_modifier": 1.9
   },
@@ -67,7 +67,7 @@
     "path": "avatars/Satella/body/hood.png",
     "x_offset": 5,
     "y_offset": 45,
-    "active": true,
+    "active": false,
     "z_index": 7,
     "scale_modifier": 1.2
   },
@@ -78,7 +78,7 @@
     "y_offset": -140,
     "active": true,
     "z_index": 10,
-    "scale_modifier": 1.0
+    "scale_modifier": 1.2
   },
   {
     "name": "eye_closed",

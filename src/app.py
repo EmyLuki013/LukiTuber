@@ -9,6 +9,7 @@ from settings import global_settings
 from renderer import Renderer
 from audio_capture import AudioCapture
 from lipsync import LipsyncController
+from blink import BlinkController
 
 class App:
     def __init__(self, width=800, height=600):
@@ -31,6 +32,7 @@ class App:
         if selected_avatar:
             selected_avatar.layers_manager.load_layers()
             selected_avatar.bootstrap_states()
+            self.blink = BlinkController(states=selected_avatar.states)
             log.info(f"Layers do avatar '{selected_avatar.name}' carregados")
             self.renderer.set_avatar(selected_avatar)
         else:
@@ -116,10 +118,14 @@ class App:
         running = True
 
         while running:
+            dt = clock.tick(60) / 1000.0
+
             running = self.handle_events()
-            self.lipsync.update()
+            if self.lipsync is not None:
+                self.lipsync.update()
+            if self.blink is not None:
+                self.blink.update(dt)
             self.render_frame()
-            clock.tick(60)
 
         self._save_state()
         self.audio.stop()
