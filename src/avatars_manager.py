@@ -8,7 +8,6 @@ from settings import global_settings
 
 AVATARS_FILE = "avatars/avatars.json"
 
-
 class AvatarsManager:
     def __init__(self):
         self.avatars = []
@@ -25,12 +24,19 @@ class AvatarsManager:
                 return a
         return None
 
-    def create_avatar(self, name: str, dir: str, create_dirs=True):
+    def create_avatar(self, name, dir, create_dirs=True,
+                      position=None, scale=None):
         if self.get_avatar(name):
             log.warning(f"Avatar '{name}' já existe. Ignorando criação.")
             return self.get_avatar(name)
 
         new_avatar = Avatar(name, dir)
+
+        if position is not None:
+            new_avatar.position = tuple(position)
+        if scale is not None:
+            new_avatar.scale = scale
+
         self.avatars.append(new_avatar)
 
         if create_dirs:
@@ -113,5 +119,11 @@ class AvatarsManager:
 
         log.info("Carregando Avatars...")
         for obj in avatars_json:
-            self.create_avatar(obj["name"], obj["dir"], create_dirs=False)
+            self.create_avatar(
+                obj["name"],
+                obj["dir"],
+                create_dirs=False,
+                position=obj.get("position"),
+                scale=obj.get("scale"),
+            )
             log.info(f"Avatar '{obj['name']}' carregado.")

@@ -473,14 +473,39 @@ class GUIApp:
         nome = dlg.result["name"]
         base_dir = dlg.result["path"]
 
-        # ⚠️ a pasta DO avatar é base + nome
-        avatar_dir = os.path.join(base_dir, nome)
-        avatar_dir_formated = avatar_dir_formated = "avatars" + avatar_dir.split("avatars", 1)[1]
-        avatar_dir_formated = avatar_dir_formated.replace("\\", "/")
+        # Detecta "avatars" no path de forma robusta
+        parts = Path(base_dir).parts
+        if "avatars" in parts:
+            idx = parts.index("avatars")
+            avatar_dir = "/".join(["avatars"] + list(parts[idx + 1:]) + [nome])
+        else:
+            # fallback: coloca dentro de avatars/<nome>
+            log.warning(
+                f"Diretório '{base_dir}' não contém 'avatars'. "
+                f"Usando fallback: 'avatars/{nome}'"
+            )
+            avatar_dir = f"avatars/{nome}"
 
-        self.avatars_manager.create_avatar(nome, avatar_dir_formated)
-        self.avatars_manager.save_avatars()
-        self._load_avatars()
+        # Já existe?
+        if self.avatars_manager.get_avatar(nome):
+            messagebox.showwarning(
+                "Avatar já existe",
+                f"Já existe um avatar chamado '{nome}'.",
+                parent=self.window,
+            )
+            return
+
+        try:
+            self.avatars_manager.create_avatar(nome, avatar_dir)
+            self.avatars_manager.save_avatars()
+            self._load_avatars()
+        except Exception as e:
+            log.exception("Falha ao criar avatar")
+            messagebox.showerror(
+                "Erro",
+                f"Não foi possível criar o avatar:\n{e}",
+                parent=self.window,
+            )
 
 
     def _on_rename_avatar(self, avatar, card):

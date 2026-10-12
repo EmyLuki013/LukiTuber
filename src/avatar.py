@@ -2,7 +2,6 @@ from logger import log
 from states import States
 from layers_manager import LayersManager
 
-
 class Avatar:
     def __init__(self, name: str, dir: str):
         self.name = name
@@ -11,7 +10,6 @@ class Avatar:
         self.layers_manager = LayersManager(dir)
 
         self.bbox_size = (500, 500)
-
         self.position = (400, 300)
         self.scale = 1.0
 
@@ -34,4 +32,6 @@ class Avatar:
         return {
             "name": self.name,
             "dir": self.dir,
+            "position": list(self.position),
+            "scale": self.scale,
         }
