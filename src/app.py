@@ -28,6 +28,7 @@ class App:
         selected_avatar = self.avatars_manager.get_avatar(self.settings.selected_avatar)
         if selected_avatar:
             selected_avatar.layers_manager.load_layers()
+            selected_avatar.bootstrap_states()
             log.info(f"Layers do avatar '{selected_avatar.name}' carregados")
             self.renderer.set_avatar(selected_avatar)
         else:
@@ -45,14 +46,12 @@ class App:
                 mods = pygame.key.get_mods()
                 ctrl = mods & pygame.KMOD_CTRL
 
-                #--- Restart ---
                 if ctrl and event.key == pygame.K_r:
                     log.info("Reiniciando LukiTuber...")
                     self._save_state()
                     pygame.quit()
                     os.execv(sys.executable, [sys.executable] + sys.argv)
 
-                #--- Zoom ---
                 elif event.key in (pygame.K_EQUALS, pygame.K_PLUS, pygame.K_KP_PLUS):
                     self.renderer.zoom_in()
                 elif event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):

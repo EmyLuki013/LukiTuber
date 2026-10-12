@@ -1,29 +1,40 @@
 class States:
-    LAYER_ORDER = [
-        "body",
-        "eye_open", "eye_closed",
-        "mouth_closed", "mouth_open", "mouth_open_big",
-    ]
+    EXCLUSIVE_GROUPS = {
+        "eye_":   "eye_open",
+        "mouth_": "mouth_closed",
+    }
 
     def __init__(self):
-        self.active_layers = ["body", "eye_open", "mouth_closed"]
+        self.active_layers = set()
 
         self.speaking = False
         self.blinking = False
         self.volume = 0.0
 
-    def set_active(self, *layer_names):
-        self.active_layers = [l for l in self.LAYER_ORDER if l in layer_names]
+    def bootstrap_from_layers(self, layers):
+        for default_layer in self.EXCLUSIVE_GROUPS.values():
+            self.active_layers.add(default_layer)
+
+        for layer in layers:
+            if self._is_exclusive(layer.name):
+                continue
+            if layer.active:
+                self.active_layers.add(layer.name)
+
+    def _is_exclusive(self, name: str) -> bool:
+        return any(name.startswith(p) for p in self.EXCLUSIVE_GROUPS)
 
     def set_eyes(self, state: str):
-        layer = f"eye_{state}"
-        self._replace_group("eye_", layer)
+        self._set_group("eye_", f"eye_{state}")
 
     def set_mouth(self, state: str):
-        layer = f"mouth_{state}"
-        self._replace_group("mouth_", layer)
+        self._set_group("mouth_", f"mouth_{state}")
 
-    def _replace_group(self, prefix: str, new_layer: str):
-        others = [l for l in self.active_layers if not l.startswith(prefix)]
-        others.append(new_layer)
-        self.active_layers = [l for l in self.LAYER_ORDER if l in others]
+    def _set_group(self, prefix: str, layer_name: str):
+        for name in list(self.active_layers):
+            if name.startswith(prefix):
+                self.active_layers.discard(name)
+        self.active_layers.add(layer_name)
+
+    def is_active(self, name: str) -> bool:
+        return name in self.active_layers

@@ -12,6 +12,9 @@ class LayersManager:
         self.basePath = basePath
         self.layer_file_path = os.path.join(self.basePath, LAYERS_FILE)
 
+    def get_layers_sorted(self):
+        return sorted(self.layers, key=lambda l: l.z_index)
+
     def apply_scale_from_reference(self, bbox_size, reference_layer="body", user_scale=1.0):
         ref = self.get_layer(reference_layer)
         if ref is None or ref.texture is None:
@@ -49,12 +52,12 @@ class LayersManager:
                 return a
         return None
 
-    def create_layer(self, name: str, path: str):
+    def create_layer(self, name, path, z_index=0):
         if self.get_layer(name):
             log.warning(f"Layer '{name}' já existe. Ignorando criação.")
             return self.get_layer(name)
 
-        new_layer = Layer(name, path)
+        new_layer = Layer(name, path, z_index=z_index)
         self.layers.append(new_layer)
 
     def save_layers(self):
@@ -71,16 +74,13 @@ class LayersManager:
         eyes_path  = f"{layer_path}/eyes"
         mouth_path = f"{layer_path}/mouth"
 
-        #BODY
-        self.create_layer("body", body_path)
+        self.create_layer("body", body_path, z_index=0)
 
-        #EYES
-        for eye in ("open", "closed"):
-            self.create_layer(f"eye_{eye}", f"{eyes_path}/{eye}.png")
+        for i, eye in enumerate(("open", "closed"), start=10):
+            self.create_layer(f"eye_{eye}", f"{eyes_path}/{eye}.png", z_index=i)
 
-        #MOUTH
-        for mouth in ("closed", "open", "open_big"):
-            self.create_layer(f"mouth_{mouth}", f"{mouth_path}/{mouth}.png")
+        for i, mouth in enumerate(("closed", "open", "open_big"), start=20):
+            self.create_layer(f"mouth_{mouth}", f"{mouth_path}/{mouth}.png", z_index=i)
 
     def load_layers(self):
         if not os.path.exists(self.layer_file_path):
@@ -115,6 +115,9 @@ class LayersManager:
         for obj in layers_json:
             new_layer = Layer(obj["name"], obj["path"])
             new_layer.set_offset(obj["x_offset"], obj["y_offset"])
+            new_layer.active = obj.get("active", True)
+            new_layer.z_index = obj.get("z_index", 0)
+            new_layer.scale_modifier = obj.get("scale_modifier", 1.0)
             self.layers.append(new_layer)
 
         self.load_textures()

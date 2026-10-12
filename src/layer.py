@@ -24,15 +24,38 @@ def _make_placeholder(name: str, size=PLACEHOLDER_SIZE) -> pygame.Surface:
     return surface
 
 class Layer:
-    def __init__(self, name: str, path: str):
+    def __init__(self, name, path, z_index=0):
         self.name = name
         self.path = path
         self.x_offset = 0
         self.y_offset = 0
         self.texture = None
-        self.scaled_texture = None 
-        self.scale = 1.0
+        self.scaled_texture = None
+        self.base_scale = 1.0
+        self.scale_modifier = 1.0
         self.is_placeholder = False
+        self.active = True
+        self.z_index = z_index
+
+    def apply_scale(self, base_scale: float):
+        if self.texture is None:
+            return
+        self.base_scale = base_scale
+        final_scale = base_scale * self.scale_modifier
+        w = max(1, int(self.texture.get_width()  * final_scale))
+        h = max(1, int(self.texture.get_height() * final_scale))
+        self.scaled_texture = pygame.transform.smoothscale(self.texture, (w, h))
+
+    def get_obj(self):
+        return {
+            "name": self.name,
+            "path": self.path,
+            "x_offset": self.x_offset,
+            "y_offset": self.y_offset,
+            "active": self.active,
+            "z_index": self.z_index,
+            "scale_modifier": self.scale_modifier,
+        }
 
     def get_rect(self, anchor_x, anchor_y):
         if self.scaled_texture is None:
@@ -60,14 +83,6 @@ class Layer:
             self.scaled_texture = self.texture
             self.is_placeholder = True
 
-    def apply_scale(self, scale: float):
-        if self.texture is None:
-            return
-        self.scale = scale
-        w = max(1, int(self.texture.get_width()  * scale))
-        h = max(1, int(self.texture.get_height() * scale))
-        self.scaled_texture = pygame.transform.smoothscale(self.texture, (w, h))
-
     def get_original_size(self):
         if self.texture is None:
             return (0, 0)
@@ -87,11 +102,3 @@ class Layer:
     def set_offset(self, x: int, y: int):
         self.x_offset = x
         self.y_offset = y
-
-    def get_obj(self):
-        return {
-            "name": self.name,
-            "path": self.path,
-            "x_offset": self.x_offset,
-            "y_offset": self.y_offset,
-        }
