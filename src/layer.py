@@ -23,7 +23,6 @@ def _make_placeholder(name: str, size=PLACEHOLDER_SIZE) -> pygame.Surface:
 
     return surface
 
-
 class Layer:
     def __init__(self, name: str, path: str):
         self.name = name
@@ -34,6 +33,20 @@ class Layer:
         self.scaled_texture = None 
         self.scale = 1.0
         self.is_placeholder = False
+
+    def get_rect(self, anchor_x, anchor_y):
+        if self.scaled_texture is None:
+            return None
+        sw, sh = self.scaled_texture.get_size()
+        x = anchor_x - sw // 2 + self.x_offset
+        y = anchor_y - sh // 2 + self.y_offset
+        return pygame.Rect(x, y, sw, sh)
+
+    def draw(self, surface, anchor_x, anchor_y):
+        rect = self.get_rect(anchor_x, anchor_y)
+        if rect is None:
+            return
+        surface.blit(self.scaled_texture, rect.topleft)
 
     def load_texture(self):
         try:

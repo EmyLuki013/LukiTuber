@@ -7,9 +7,12 @@ class Renderer:
 
     def __init__(self):
         self.avatar = None
+        self.is_dragging = False
+        self.drag_offset = (0, 0)
 
     def set_avatar(self, avatar):
         self.avatar = avatar
+        self.is_dragging = False
         avatar.apply_bbox_scale()
         log.info(f"Avatar '{avatar.name}' definido no Renderer")
 
@@ -18,6 +21,8 @@ class Renderer:
             log.warning("Renderer sem avatar definido.")
             return
         self.avatar.draw(surface)
+
+    # ---------- Zoom ----------
 
     def zoom_in(self, factor=None):
         self._apply_zoom(factor if factor is not None else self.ZOOM_STEP)
@@ -48,3 +53,34 @@ class Renderer:
         self.avatar.scale = new_scale
         self.avatar.apply_bbox_scale()
         log.debug(f"Zoom: {new_scale:.3f}")
+
+    # ---------- Drag ----------
+
+    def start_drag(self, mouse_pos):
+        """Inicia o drag. Só faz efeito se o clique foi em cima do avatar."""
+        if self.avatar is None:
+            return
+
+        bbox = self.avatar.get_bounding_rect()
+        if bbox is None or not bbox.collidepoint(mouse_pos):
+            return
+
+        ax, ay = self.avatar.position
+        mx, my = mouse_pos
+        self.drag_offset = (mx - ax, my - ay)
+        self.is_dragging = True
+        log.debug(f"Drag iniciado (offset={self.drag_offset})")
+
+    def update_drag(self, mouse_pos):
+        if not self.is_dragging or self.avatar is None:
+            return
+
+        mx, my = mouse_pos
+        ox, oy = self.drag_offset
+        self.avatar.position = (mx - ox, my - oy)
+
+    def end_drag(self):
+        if not self.is_dragging:
+            return
+        self.is_dragging = False
+        log.debug(f"Drag terminado (posição final={self.avatar.position})")

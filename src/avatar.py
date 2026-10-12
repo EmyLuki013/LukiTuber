@@ -13,6 +13,23 @@ class Avatar:
         self.position = (400, 300)
         self.scale = 1.0
 
+    def get_bounding_rect(self):
+        rects = []
+        cx, cy = self.position
+        for name in self.states.active_layers:
+            layer = self.layers_manager.get_layer(name)
+            if layer is None:
+                continue
+            r = layer.get_rect(cx, cy)
+            if r is not None:
+                rects.append(r)
+
+        if not rects:
+            return None
+        if len(rects) == 1:
+            return rects[0]
+        return rects[0].unionall(rects[1:])
+
     def apply_bbox_scale(self, reference_layer="body"):
         self.layers_manager.apply_scale_from_reference(
             self.bbox_size,

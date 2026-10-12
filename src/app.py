@@ -59,6 +59,21 @@ class App:
                     self.renderer.zoom_out()
                 elif event.key == pygame.K_0:
                     self.renderer.reset_zoom()
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.renderer.start_drag(event.pos)
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.renderer.end_drag()
+
+            elif event.type == pygame.MOUSEMOTION:
+                if self.renderer.is_dragging:
+                    if event.buttons[0]:
+                        self.renderer.update_drag(event.pos)
+                    else:
+                        self.renderer.end_drag()
 
             elif event.type == pygame.MOUSEWHEEL:
                 mods = pygame.key.get_mods()
@@ -78,7 +93,7 @@ class App:
             log.exception(f"Falha ao salvar avatares: {e}")
 
     def render_frame(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((0, 255, 0))
         self.renderer.render(self.screen)
         pygame.display.flip()
 
