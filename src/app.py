@@ -7,6 +7,8 @@ from logger import log
 from avatars_manager import AvatarsManager
 from settings import global_settings
 from renderer import Renderer
+from audio_capture import AudioCapture
+from lipsync import LipsyncController
 
 class App:
     def __init__(self, width=800, height=600):
@@ -14,7 +16,7 @@ class App:
         self.height = height
         self.avatars_manager = AvatarsManager()
         self.settings = global_settings
-        self.renderer = Renderer()
+        self.renderer = Renderer()  
 
         pygame.init()
 
@@ -35,6 +37,19 @@ class App:
             log.error("Não foi possivel carregar o avatar selecionado")
 
         self.screen = pygame.display.get_surface()
+
+        self.audio = AudioCapture(
+            device_name=self.settings.selected_microphone,
+            samplerate=44100,
+            blocksize=1024,
+        )
+        self.audio.start()
+
+        self.lipsync = LipsyncController(
+            audio_capture=self.audio,
+            states=selected_avatar.states,
+            config=self.settings.lipsync_config(),
+        )
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -102,8 +117,10 @@ class App:
 
         while running:
             running = self.handle_events()
+            self.lipsync.update()
             self.render_frame()
             clock.tick(60)
 
         self._save_state()
+        self.audio.stop()
         pygame.quit()

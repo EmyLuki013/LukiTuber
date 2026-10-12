@@ -6,6 +6,14 @@ from pathlib import Path
 from logger import log
 from avatars_manager import AvatarsManager
 
+try:
+    from audio_devices import list_input_devices
+    AUDIO_AVAILABLE = True
+except Exception as e:
+    from logger import log
+    log.warning(f"sounddevice indisponível: {e}")
+    AUDIO_AVAILABLE = False
+
 
 # ---------- Paleta ----------
 BG_MAIN    = "#1e1e2e"
@@ -22,7 +30,6 @@ DANGER_HOV = "#ff7d97"
 # ---------- Placeholders padrão ----------
 DEFAULT_AVATAR_NAME = "Novo Avatar"
 DEFAULT_DIR         = str(Path.home() / "LukiTuber" / "avatars")
-
 
 # =========================================================
 #  Helpers: Entry com placeholder
@@ -236,6 +243,7 @@ class GUIApp:
     def __init__(self, width, height):
         self.window = tk.Tk()
         self.avatars_manager = AvatarsManager()
+        self.DEFAULT_MIC_LABEL = "Padrão do sistema"
 
         log.info("Inicializando LukiTuber - GUI...")
         self.window.title("LukiTuber - GUI")
@@ -246,6 +254,37 @@ class GUIApp:
         self._setup_styles()
         self._build_ui()
         self._load_avatars()
+
+    def _refresh_microphones(self):
+        """Recarrega a lista de microfones no dropdown."""
+        if not AUDIO_AVAILABLE:
+            self.mic_combo["values"] = ["(sounddevice não instalado)"]
+            self.mic_combo.set("(sounddevice não instalado)")
+            self.mic_combo.configure(state="disabled")
+            return
+
+        devices = list_input_devices()
+        names = [self.DEFAULT_MIC_LABEL] + [d["name"] for d in devices]
+
+        self.mic_combo["values"] = names
+
+        # Seleciona o que está salvo
+        saved = self.avatars_manager.settings.selected_microphone
+        if saved is None or saved not in names:
+            self.mic_combo.set(self.DEFAULT_MIC_LABEL)
+        else:
+            self.mic_combo.set(saved)
+
+    def _on_microphone_changed(self, event=None):
+        """Persiste a escolha do microfone."""
+        value = self.mic_combo.get()
+        if value == self.DEFAULT_MIC_LABEL:
+            self.avatars_manager.settings.selected_microphone = None
+        else:
+            self.avatars_manager.settings.selected_microphone = value
+
+        self.avatars_manager.settings.save_settings()
+        log.info(f"Microfone selecionado: {value}")
 
     # ---------- Estilos ----------
     def _setup_styles(self):
@@ -283,6 +322,32 @@ class GUIApp:
             command=self._on_create_avatar, primary=True,
         )
         self.create_avatar_btn.pack(fill="x", padx=15, pady=(20, 10))
+
+        # ---- Seção de Áudio ----
+        sep = tk.Frame(sidebar, bg=BG_HOVER, height=1)
+        sep.pack(fill="x", padx=15, pady=(20, 12))
+
+        tk.Label(sidebar, text="Áudio", bg=BG_PANEL, fg=FG_MUTED,
+                font=("Segoe UI", 9, "bold"), anchor="w"
+                ).pack(fill="x", padx=15, pady=(0, 4))
+
+        tk.Label(sidebar, text="Microfone", bg=BG_PANEL, fg=FG_TEXT,
+                font=("Segoe UI", 9), anchor="w"
+                ).pack(fill="x", padx=15, pady=(0, 4))
+
+        self.mic_combo = ttk.Combobox(sidebar, state="readonly",
+                                    font=("Segoe UI", 9))
+        self.mic_combo.pack(fill="x", padx=15, pady=(0, 6))
+        self.mic_combo.bind("<<ComboboxSelected>>", self._on_microphone_changed)
+
+        refresh_btn = self._make_button(
+            sidebar, text="🔄  Atualizar",
+            command=self._refresh_microphones, primary=False,
+        )
+        refresh_btn.pack(fill="x", padx=15, pady=(0, 10))
+
+        # Popula na primeira vez
+        self._refresh_microphones()
 
         # Conteúdo
         content = tk.Frame(body, bg=BG_MAIN)
