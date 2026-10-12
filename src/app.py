@@ -75,6 +75,11 @@ class App:
                     self.renderer.zoom_out()
                 elif event.key == pygame.K_0:
                     self.renderer.reset_zoom()
+
+                elif event.key == pygame.K_RIGHTBRACKET:
+                    self.lipsync.toggle_mute()
+                    estado = "ativo" if self.lipsync.enabled else "mutado"
+                    log.info(f"Lipsync {estado}")
                 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:

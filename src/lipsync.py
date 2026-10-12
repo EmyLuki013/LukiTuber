@@ -20,7 +20,21 @@ class LipsyncController:
         self._smoothed_rms = 0.0
         self._current_state = "closed"
 
+        self.enabled = True
+
+    def set_muted(self, muted: bool):
+        self.enabled = not muted
+        if muted:
+            self._current_state = "closed"
+            self.states.set_mouth("closed")
+
+    def toggle_mute(self):
+        self.set_muted(self.enabled)
+
     def update(self):
+        if not self.enabled:
+            return
+
         if not self.audio.is_running:
             return
 
@@ -44,7 +58,7 @@ class LipsyncController:
                 new_state = "closed"
             else:
                 new_state = "open"
-        else:  # open_big
+        else:
             if r < self.threshold_close:
                 new_state = "closed"
             elif r < self.threshold_open:
